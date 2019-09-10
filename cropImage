@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+# remove the necessity to have .py extension
+
+from PIL import Image
+from sys import argv
+import numpy as np
+import math
+import matplotlib.pyplot as plt  # Just so we can visually confirm we have the same images
+
+option_handle_list = ['--imagePath', '--info', '--showFirstImage', '--showImage', '--showAllImages', '--verbose']
+option_unique_list = ['--info', '--showAllImages', '--verbose']
+options = {}
+
+for option_handle in option_handle_list:
+    if option_handle in argv:
+        if option_handle in option_unique_list:
+            options[option_handle[2:]] = True
+        else:
+            options[option_handle[2:]] = argv[argv.index(option_handle) + 1]
+    else:
+        options[option_handle[2:]] = None
+
+if options['info'] != None:
+    print("This function shows images.")
+    print("")
+    print("parameters")
+    print(" --info: get info")
+    print(" --imagePath (mandatory) + path: show image path")
+    print(" --showImage + number: show image number N")
+    print(" --showAllImages: show all images")
+    exit()
+
+if not options['imagePath']:
+    raise ValueError("Name of the image file must be in argument --imagePath")
+
+
+
+img = Image.open(options['imagePath'])
+print(img.n_frames)
+images = []
+for i in range(img.n_frames): #number of images
+    img.seek(i)
+    if options['verbose']:
+        print("----------- image " + str(i) + "-----------")
+        print("format : " + str(img.format))
+        print("size : " + str(img.size))
+        print("mode : " + str(img.mode))
+    npyImage = np.array(img)
+    images.append(npyImage)
+    numberOfPatches = len(npyImage) * len(npyImage[0])
+    print(len(numberOfPatches))
+
+if options['showImage'] != None:
+    try:
+        imageNumber = int(options['showImage'])
+        plt.imshow(images[imageNumber])
+        plt.show()
+    except ValueError:
+        print('parameter after --showImage must be a number !')
+
+if options['showAllImages'] != None:
+    sqrt = math.ceil(math.sqrt(img.n_frames))
+    fig = plt.figure(figsize=(sqrt, sqrt))
+    for i in range(1, img.n_frames +1):
+        fig.add_subplot(sqrt, sqrt, i)
+        plt.imshow(images[i - 1])
+    plt.show()
