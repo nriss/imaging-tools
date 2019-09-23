@@ -2,41 +2,51 @@
 # remove the necessity to have .py extension
 
 from PIL import Image
-from sys import argv
+import sys
+import os.path
 import numpy as np
 import math
 import matplotlib.pyplot as plt  # Just so we can visually confirm we have the same images
 
-option_handle_list = ['--imagePath', '--info', '--showFirstImage', '--showImage', '--showAllImages', '--verbose']
+option_handle_list = ['--showFirstImage', '--showImage', '--stats']
 option_unique_list = ['--info', '--showAllImages', '--verbose']
 options = {}
 
+
+
+
 for option_handle in option_handle_list:
-    if option_handle in argv:
-        if option_handle in option_unique_list:
-            options[option_handle[2:]] = True
-        else:
-            options[option_handle[2:]] = argv[argv.index(option_handle) + 1]
+    if option_handle in sys.argv:
+        options[option_handle[2:]] = sys.argv[sys.argv.index(option_handle) + 1]
+    else:
+        options[option_handle[2:]] = None
+
+for option_handle in option_unique_list:
+    if option_handle in sys.argv:
+        options[option_handle[2:]] = True
     else:
         options[option_handle[2:]] = None
 
 if options['info'] != None:
-    print("This function shows images.")
+    print("Function showImage.")
+    print("USAGE : showImage [imagePath] [options]")
     print("")
     print("parameters")
-    print(" --info: get info")
-    print(" --imagePath (mandatory) + path: show image path")
-    print(" --showImage + number: show image number N")
+    print(" --info: get info about the image file")
+    print(" --showImage N: show image number N")
     print(" --showAllImages: show all images")
+    print(" --stats N: get stats of image number N, including its histogram")
     exit()
 
-if not options['imagePath']:
-    raise ValueError("Name of the image file must be in argument --imagePath")
+if not os.path.exists(sys.argv[1]):
+    raise ValueError("Incorrect path, image path must be the first argument")
+imagePath = sys.argv[1]
 
+if options['verbose']:
+    np.set_printoptions(threshold=sys.maxsize) #writing entire data (not splitting) may consume time
 
-
-img = Image.open(options['imagePath'])
-print(img.n_frames)
+img = Image.open(imagePath)
+print("number of images found : ", img.n_frames)
 images = []
 for i in range(img.n_frames): #number of images
     img.seek(i)
@@ -48,13 +58,37 @@ for i in range(img.n_frames): #number of images
     npyImage = np.array(img)
     images.append(npyImage)
 
+
+if options['stats'] != None:
+    imageNumber = int(options['stats'])
+    valuesImage = images[imageNumber].flatten()
+    max = np.amax(valuesImage)
+    min = np.amin(valuesImage)
+    val = np.arange(max)
+    print("Range :", min, max)
+
+    print("flattened : ", valuesImage)
+    histo, bins = np.histogram(valuesImage, bins = val)
+    plt.hist(histo, bins='auto')
+    plt.yscale("log")
+    plt.show()
+
+
 if options['showImage'] != None:
     try:
         imageNumber = int(options['showImage'])
+        # #images[imageNumber][y][x]
+        # print(images[imageNumber][345][138]) #y
+        # print(images[imageNumber][150][160]) #y
+        # print(images[imageNumber][169][193]) #y
+        # getRGB(images[imageNumber][169][193]) #y
+        # print("-----")
+        # print(images[imageNumber][212][392]) #n
+        # print(images[imageNumber][68][49]) #n
         plt.imshow(images[imageNumber])
         plt.show()
     except ValueError:
-        print('parameter after --showImage must be a number !')
+        print('parameter after --showImage must be a number between 0 and ' + str(img.n_frames))
 
 if options['showAllImages'] != None:
     sqrt = math.ceil(math.sqrt(img.n_frames))
