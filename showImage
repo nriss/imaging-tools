@@ -28,10 +28,10 @@ for option_handle in option_unique_list:
         options[option_handle[2:]] = None
 
 if options['info'] != None:
-    print("Function showImage.")
+    print("Function showImage, this function can be used to show npy or tiff images")
     print("USAGE : showImage [imagePath] [options]")
     print("")
-    print("parameters")
+    print("options")
     print(" --info: get info about the image file")
     print(" --showImage N: show image number N")
     print(" --showAllImages: show all images")
@@ -42,35 +42,51 @@ if not os.path.exists(sys.argv[1]):
     raise ValueError("Incorrect path, image path must be the first argument")
 imagePath = sys.argv[1]
 
+
+if options['showImage'] == None and options['showAllImages'] == None and options['stats'] == None:
+    options['showAllImages'] = True #default
+
+
 if options['verbose']:
     np.set_printoptions(threshold=sys.maxsize) #writing entire data (not splitting) may consume time
 
-img = Image.open(imagePath)
-print("number of images found : ", img.n_frames)
-images = []
-for i in range(img.n_frames): #number of images
-    img.seek(i)
-    if options['verbose']:
-        print("----------- image " + str(i) + "-----------")
-        print("format : " + str(img.format))
-        print("size : " + str(img.size))
-        print("mode : " + str(img.mode))
-    npyImage = np.array(img)
-    images.append(npyImage)
+if ".npy" in imagePath:
+    images = np.load(imagePath)
+else:
+    img = Image.open(imagePath)
+    print("number of images found : ", img.n_frames)
+    images = []
+    for i in range(img.n_frames): #number of images
+        img.seek(i)
+        if options['verbose']:
+            print("----------- image " + str(i) + "-----------")
+            print("format : " + str(img.format))
+            print("size : " + str(img.size))
+            print("mode : " + str(img.mode))
+        npyImage = np.array(img)
+        images.append(npyImage)
 
 
 if options['stats'] != None:
     imageNumber = int(options['stats'])
+    if options['verbose']:
+        for i in range(img.n_frames):
+            max = np.amax(images[i])
+            min = np.amin(images[i])
+            val = np.arange(max)
+            print("Range (", i, "):", min, max)
+
+
     valuesImage = images[imageNumber].flatten()
-    max = np.amax(valuesImage)
-    min = np.amin(valuesImage)
+    max = np.amax(images[imageNumber])
+    min = np.amin(images[imageNumber])
     val = np.arange(max)
     print("Range :", min, max)
 
-    print("flattened : ", valuesImage)
-    histo, bins = np.histogram(valuesImage, bins = val)
+    print("flat : ", valuesImage)
+    histo, bins = np.histogram(valuesImage, bins = max)
     plt.hist(histo, bins='auto')
-    plt.yscale("log")
+    #plt.yscale("log")
     plt.show()
 
 
@@ -85,15 +101,28 @@ if options['showImage'] != None:
         # print("-----")
         # print(images[imageNumber][212][392]) #n
         # print(images[imageNumber][68][49]) #n
-        plt.imshow(images[imageNumber])
+
+        if ".npy" in imagePath:
+            plt.imshow(np.squeeze(images[imageNumber])) #removing Z axis
+        else:
+            plt.imshow(images[imageNumber])
         plt.show()
     except ValueError:
-        print('parameter after --showImage must be a number between 0 and ' + str(img.n_frames))
+        print('parameter after --showImage must be a number between 0 and ' + str(len(images)))
 
 if options['showAllImages'] != None:
-    sqrt = math.ceil(math.sqrt(img.n_frames))
+    print("showing ", len(images), " images")
+    imageNbToShow = len(images)
+    if len(images) > 36:
+        imageNbToShow = 36
+        print("Too many images (", len(images), "). Showing only the 36 first images")
+
+    sqrt = math.ceil(math.sqrt(imageNbToShow))
     fig = plt.figure(figsize=(sqrt, sqrt))
-    for i in range(1, img.n_frames +1):
+    for i in range(1, imageNbToShow + 1):
         fig.add_subplot(sqrt, sqrt, i)
-        plt.imshow(images[i - 1])
+        if ".npy" in imagePath:
+            plt.imshow(np.squeeze(images[i - 1])) #removing Z axis
+        else:
+            plt.imshow(images[i - 1])
     plt.show()

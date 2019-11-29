@@ -9,14 +9,10 @@ import math
 import matplotlib.pyplot as plt  # Just so we can visually confirm we have the same images
 
 
-option_handle_list = []
-option_unique_list = ['--info', '--verbose']
+option_handle_list = ['--cropByPosition']
+option_unique_list = ['--info', '--help', '--verbose', '--cropByHistogram', '--centerDot']
 options = {}
 
-
-if not os.path.exists(sys.argv[1]):
-    raise ValueError("Incorrect path, image path must be the first argument")
-imagePath = sys.argv[1]
 
 for option_handle in option_handle_list:
     if option_handle in sys.argv:
@@ -33,12 +29,20 @@ for option_handle in option_unique_list:
 
 
 
-if options['info'] != None:
+if options['info'] != None or options['help'] != None:
     print("Function cropImage.")
     print("USAGE : cropImageImage [imagePath] [options]")
     print("")
+    print("")
+    print("options")
+    print(" --cropByPosition path: crop the image depending on x positions")
+    print(" --cropByHistogram path: crop the image on 128*128 patches depending on histogram")
     exit()
 
+
+if not os.path.exists(sys.argv[1]):
+    raise ValueError("Incorrect path, image path must be the first argument")
+imagePath = sys.argv[1]
 
 if options['verbose']:
     np.set_printoptions(threshold=sys.maxsize) #writing entire data (not splitting) may consume time
@@ -57,45 +61,115 @@ for i in range(img.n_frames): #number of images
     images.append(npyImage)
 
 
-
-imageToTreat = images[1]
-print(type(images[1]))
-print(images[1], images[1].dtype)
-
-print(len(images[0]), len(images[0][0]))
-
-yColumns = len(images[0])/128
-xColumns = len(images[0][0])/128
+imageNumber = 0 #id of image to treat
 
 
-valuesImage = images[0].flatten()
-max = np.amax(valuesImage)
-min = np.amin(valuesImage)
-print("Range :", min, max)
-threshold = min + (max - min) / 10 #rejetting the then lowest percent
+imageToTreat = images[imageNumber]
+print(type(images[imageNumber]))
+print(images[imageNumber], images[imageNumber].dtype)
+
+print(len(images[imageNumber]), len(images[imageNumber][0]))
+
+yColumns = int(len(images[imageNumber])/128)
+xColumns = int(len(images[imageNumber][0])/128)
 
 
-result = []
-for y in range(0, xColumns):
-    for x in range(0, yColumns):
-        save = False
-        temp = np.ndarray(shape=(128,128), dtype="uint16")
-        for i in range(y * 128, (y + 1) * 128 - 1 ):
-            for j in range(x * 128, (x + 1) * 128 - 1):
-                temp[i - y * 128][j - x * 128] = images[0][i][j]
-                if images[0][i][j] > threshold:
-                    save = True
-        if save:
-            print("saved --> y:", y, " x:", x)
-        result.append(temp)
+if options['cropByHistogram'] != None:
+    valuesImage = images[imageNumber].flatten()
+    max = np.amax(valuesImage)
+    min = np.amin(valuesImage)
+    print("Range :", min, max)
+    threshold = min + (max - min) / 10 #ignoring <10% values
 
-sqrt = math.ceil(math.sqrt(len(result)))
-fig = plt.figure(figsize=(sqrt, sqrt))
-for i in range(1, len(result) + 1):
-    fig.add_subplot(sqrt, sqrt, i)
-    plt.imshow(result[i - 1])
-plt.show()
 
+    for y in range(0, xColumns):
+        for x in range(0, yColumns):
+            save = False
+            temp = np.ndarray(shape=(128,128), dtype="uint16")
+            for i in range(y * 128, (y + 1) * 128 - 1 ):
+                for j in range(x * 128, (x + 1) * 128 - 1):
+                    temp[i - y * 128][j - x * 128] = images[imageNumber][i][j]
+                    if images[imageNumber][i][j] > threshold:
+                        save = True
+            if save:
+                print("imagesToSave --> y:", y, " x:", x)
+            result.append(temp)
+
+    sqrt = math.ceil(math.sqrt(len(result)))
+    fig = plt.figure(figsize=(sqrt, sqrt))
+    for i in range(1, len(result) + 1):
+        fig.add_subplot(sqrt, sqrt, i)
+        plt.imshow(result[i - 1])
+    plt.show()
+
+if options['cropByPosition'] != None:
+    pathHDF5 = options['cropByPosition']
+    import h5py
+    import math
+    sliceHeight = 40
+
+    if not os.path.exists(pathHDF5):
+        raise ValueError("Incorrect path, the path of an HDF5 file from picasso library must be added after the cropByHistogram option")
+    with h5py.File(pathHDF5, 'r') as f:
+        # List all groups
+        #print("Keys: %s" % f.keys())
+        a_group_key = list(f.keys())[0] #print("a_group_key: %s" % a_group_key)
+
+        # Get the data
+        data = list(f[a_group_key])
+
+        #format
+        dotPositions = []
+        for i in range(0, len(data)):
+            ####################
+            ## data[i] format ## obtained with the localize func of picasso https://github.com/jungmannlab/picasso
+            ####################
+            # 0: n_frames
+            # 1: x
+            # 2: y
+            # 3: photons
+            # 4: sx
+            # 5: sy
+            # 6: bg
+            # 7: lpx
+            # 8: lpy
+            # 9: net_gradient
+            # 10: likelihood
+            # 11: iterations
+            while len(dotPositions) <= data[i][0]:
+                dotPositions.append([])
+            dotPositions[data[i][0]].append([data[i][1], data[i][2]])
+        if options['verbose']:
+            for i in range(0, len(dotPositions)):
+                print("dotPositions ", i, "len : ", len(dotPositions[i]))
+                print(dotPositions[i])
+                print()
+        imageResults = []
+        alreadyPrinted = [] # remember the alreadyPrinted slices
+        for i in dotPositions[imageNumber]:
+            x = int(i[0])
+            y = int(i[1])
+            newImage = np.ndarray(shape=(sliceHeight,512), dtype="uint16")
+            increment = 0
+            if options['centerDot']:
+                for yToGet in range(y - int(sliceHeight/2), y + int(sliceHeight/2)):
+                    newImage[increment] = images[imageNumber][yToGet]
+                    increment += 1
+            else:
+                begining = sliceHeight * math.trunc(y/sliceHeight)
+                end = sliceHeight * (math.trunc(y/sliceHeight) + 1)
+                if not begining in alreadyPrinted:
+                    for yToGet in range(begining, end):
+                        newImage[increment] = images[imageNumber][yToGet]
+                        increment += 1
+                    alreadyPrinted.append(begining)
+
+            imageResults.append(newImage)
+    fig = plt.figure(figsize=(len(imageResults), 1))
+    for i in range(1, len(imageResults) + 1):
+        fig.add_subplot(len(imageResults), 1, i)
+        plt.imshow(imageResults[i - 1])
+    plt.show()
 # for indexY, valueX in enumerate(images[1]):
 #     if indexY < 128:
 #         for indexX, valueY in enumerate(images[1][indexY]):
