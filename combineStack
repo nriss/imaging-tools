@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+# remove the necessity to have .py extension
+
+import tifffile
+import sys, os
+import numpy as np
+
+option_handle_list = ['--imageNumber', '--newName']
+option_unique_list = ['--info', '--help']
+options = {}
+
+
+
+
+for option_handle in option_handle_list:
+    if option_handle in sys.argv:
+        options[option_handle[2:]] = sys.argv[sys.argv.index(option_handle) + 1]
+    else:
+        options[option_handle[2:]] = None
+
+for option_handle in option_unique_list:
+    if option_handle in sys.argv:
+        options[option_handle[2:]] = True
+    else:
+        options[option_handle[2:]] = None
+
+if options['info'] != None or options['help'] != None:
+    print("Function combineStack, this function can be used to combine stacks of tif files")
+    print("USAGE : combineStack [imagePath] [imagePath2]")
+    print("")
+    print("options")
+    print(" --newName: new name of the image")
+    exit()
+
+
+if len(sys.argv) == 1 or not os.path.exists(sys.argv[1]):
+    raise ValueError("Incorrect path, the first and second arguments must be the image path")
+imagePath = sys.argv[1]
+
+if len(sys.argv) == 1 or not os.path.exists(sys.argv[2]):
+    raise ValueError("Incorrect path, the first and second arguments must be the image path")
+imagePath2 = sys.argv[2]
+
+if options['newName'] == None:
+    newName = "combined.tif"
+else:
+    newName = options['newName']
+y = tifffile.imread(imagePath)
+z = tifffile.imread(imagePath2)
+
+
+
+
+tifffile.imsave(newName, np.concatenate((y,z)))

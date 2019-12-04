@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+# remove the necessity to have .py extension
+
+import tifffile
+import sys, os
+import numpy as np
+
+option_handle_list = ['--imageNumber', '--newName']
+option_unique_list = ['--info', '--help']
+options = {}
+
+
+
+
+for option_handle in option_handle_list:
+    if option_handle in sys.argv:
+        options[option_handle[2:]] = sys.argv[sys.argv.index(option_handle) + 1]
+    else:
+        options[option_handle[2:]] = None
+
+for option_handle in option_unique_list:
+    if option_handle in sys.argv:
+        options[option_handle[2:]] = True
+    else:
+        options[option_handle[2:]] = None
+
+if options['info'] != None or options['help'] != None:
+    print("Function splitTif, this function can be used to reduce the stack size of tif files.")
+    print("Takes the image from 5 to n + 5")
+    print("USAGE : splitTif [imagePath] [options]")
+    print("EX: splitTif image.tif --imageNumber 100")
+    print("")
+    print("options")
+    print(" --imageNumber: number of images you want to get")
+    print(" --newName: new name of the image")
+    exit()
+
+
+if len(sys.argv) == 1 or not os.path.exists(sys.argv[1]):
+    raise ValueError("Incorrect path, the first argument must be the image path")
+imagePath = sys.argv[1]
+
+if options['imageNumber'] == None:
+    imageNumber = 1000
+else:
+    imageNumber = int(options['imageNumber'])
+
+if options['newName'] == None:
+    newName = "reduced.tif"
+else:
+    newName = options['newName']
+y = tifffile.imread(imagePath)
+
+
+tifffile.imsave(newName, y[10:imageNumber+10])

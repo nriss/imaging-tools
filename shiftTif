@@ -1,0 +1,75 @@
+#!/usr/bin/env python
+# remove the necessity to have .py extension
+import sys
+import os.path
+import numpy as np
+import math
+import matplotlib.pyplot as plt  # Just so we can visually confirm we have the same images
+import tifffile
+
+option_handle_list = ['--cropByPosition', '--x', '--y']
+option_unique_list = ['--info', '--help', '--verbose']
+options = {}
+
+
+for option_handle in option_handle_list:
+    if option_handle in sys.argv:
+        options[option_handle[2:]] = sys.argv[sys.argv.index(option_handle) + 1]
+    else:
+        options[option_handle[2:]] = None
+
+for option_handle in option_unique_list:
+    if option_handle in sys.argv:
+        options[option_handle[2:]] = True
+    else:
+        options[option_handle[2:]] = None
+
+
+if options['info'] != None or options['help'] != None:
+    print("Function showImage.")
+    print("USAGE : shiftTif [imagePath] [options]")
+    print("EX : shiftTif image.tif --x -5 --y 10")
+    print("")
+    print("")
+    print("options")
+    print(" --x int: shift the image by (int) pixels (can be positive or negative)")
+    print(" --y int: shift the image by (int) pixels (can be positive or negative)")
+    exit()
+
+
+if not os.path.exists(sys.argv[1]):
+    raise ValueError("Incorrect path, image path must be the first argument")
+imagePath = sys.argv[1]
+
+if options['verbose']:
+    np.set_printoptions(threshold=sys.maxsize) #writing entire data (not splitting) may consume time
+
+img = tifffile.imread(imagePath)
+
+if options['x'] != None:
+    xShift = int(options['x'])
+if options['y'] != None:
+    yShift = int(options['y'])
+
+for index, elem in enumerate(img):
+    print(img[index].shape, img[index])
+    if options['y'] != None:
+        if yShift > 0:
+            img[index] =  np.roll(img[index], yShift, axis=0)
+            img[index][:yShift,:] = 0
+        elif yShift < 0:
+            img[index] =  np.roll(img[index], yShift, axis=0)
+            img[index][yShift:,:] = 0
+        print(img[index].shape, img[index])
+
+    if options['x'] != None:
+        if xShift > 0:
+            img[index] =  np.roll(img[index], xShift, axis=1)
+            img[index][:,:xShift] = 0
+        elif xShift < 0:
+            img[index] =  np.roll(img[index], xShift, axis=1)
+            img[index][:,xShift:] = 0
+
+
+
+img = tifffile.imsave("shifted_" + imagePath, img)
