@@ -13,5 +13,5 @@ All scripts can be used as a bash command is the folder is added to the $PATH
 Each tool has a --help function for more information
 
 # About
-This toolbox has been developped to help building CSBDeep model (https://github.com/nriss/DatasetMicroscopy).
+This toolbox has been developped to help training CSBDeep models applied to multi dimensional super resolution microscopy (https://github.com/nriss/DatasetMicroscopy).
 Developped by Nicolas Riss under the supervision of Julien Godet
