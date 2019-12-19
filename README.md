@@ -1,7 +1,7 @@
 # usefulTools
 
 Useful tools to get stats and look at tif images.
-All scripts can be used as a command is the folder is added to the $PATH
+All scripts can be used as a bash command is the folder is added to the $PATH
 
 - combineStack : combine two image stacks (USAGE : combineStack [imagePath] [imagePath2])
 - cropImage : crop image in 128.128 patches (USAGE : cropImage [imagePath] [options])
