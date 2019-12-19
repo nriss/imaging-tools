@@ -31,7 +31,7 @@ for option_handle in option_unique_list:
 
 if options['info'] != None or options['help'] != None:
     print("Function cropImage.")
-    print("USAGE : cropImageImage [imagePath] [options]")
+    print("USAGE : cropImage [imagePath] [options]")
     print("")
     print("")
     print("options")

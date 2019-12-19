@@ -52,7 +52,6 @@ if options['y'] != None:
     yShift = int(options['y'])
 
 for index, elem in enumerate(img):
-    print(img[index].shape, img[index])
     if options['y'] != None:
         if yShift > 0:
             img[index] =  np.roll(img[index], yShift, axis=0)

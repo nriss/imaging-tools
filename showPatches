@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+# remove the necessity to have .py extension
+
+from __future__ import print_function, unicode_literals, absolute_import, division
+
+import sys, os
+import numpy as np
+import matplotlib.pyplot as plt
+from csbdeep.utils import Path, download_and_extract_zip_file, plot_some, normalize, normalize_mi_ma
+from csbdeep.io import load_training_data, save_tiff_imagej_compatible
+
+
+option_handle_list = ['--imageNumber']
+option_unique_list = ['--info', '--help']
+options = {}
+
+
+for option_handle in option_handle_list:
+    if option_handle in sys.argv:
+        options[option_handle[2:]] = sys.argv[sys.argv.index(option_handle) + 1]
+    else:
+        options[option_handle[2:]] = None
+
+for option_handle in option_unique_list:
+    if option_handle in sys.argv:
+        options[option_handle[2:]] = True
+    else:
+        options[option_handle[2:]] = None
+
+if options['info'] != None or options['help'] != None:
+    print("Function showPatches, this function show plot of pair patches.")
+    print("Takes the image from 5 to n + 5")
+    print("USAGE : showPatches [imagePath]")
+    print("EX: showPatches patch.npz")
+    print("")
+    print("options")
+    exit()
+
+
+if len(sys.argv) == 1 or not os.path.exists(sys.argv[1]):
+    raise ValueError("Incorrect path, the first argument must be the image path")
+imagePath = sys.argv[1]
+
+
+#(X_train, Y_train), (X_val,Y_val), axes = load_training_data('data_label.npz', validation_split=0.1, verbose=True)
+data = np.load(imagePath)
+#training images (180)
+
+x = data['Y'][0]
+
+print('Number of images:', len(data['X']))
+print('image size      :', x.shape)
+
+# To download :
+# import matplotlib.pyplot as plt
+# for i in range(5, 10):
+#     img = normalize(data['X'][i], 0, 100, clip=True)
+#     plt.imshow(np.squeeze(img))
+#     plt.savefig("X/img" + str(i) + ".png")
+#
+#     img = normalize(data['Y'][i], 0, 100, clip=True)
+#     plt.imshow(np.squeeze(img))
+#     plt.savefig("Y/img" + str(i) + ".png")
+# plt.show()
+
+
+# To show patch pairs X / Y
+fig=plt.figure(figsize=(8, 4))
+plt.axis('off')
+h = 2
+w = 5
+import random
+for i in range(1, w + 1):
+    nb = random.randrange(0, len(data['X']))
+
+    plt.subplot(h, w, i)
+    img = np.squeeze(normalize(data['X'][nb], 0, 100, clip=True))
+    plt.axis('off')
+    plt.imshow(img)
+
+    plt.subplot(h, w, w + i)
+    img = np.squeeze(normalize(data['Y'][nb], 0, 100, clip=True))
+    plt.axis('off')
+    plt.imshow(img)
+    plt.suptitle('5 example patches (top row: source, bottom row: target)', fontsize='small');
+plt.show()
